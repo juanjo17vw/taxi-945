@@ -578,9 +578,27 @@ async function loadBeneficio() {
     const res = await fetch(url);
     const data = await res.json();
     if (data.status === 'OK') {
-      document.getElementById('beneficio-amount').textContent = (parseFloat(data.beneficio)||0).toFixed(2) + '€';
-      document.getElementById('liquidacion-amount').textContent = (parseFloat(data.liquidacion)||0).toFixed(2) + '€';
-      document.getElementById('diapago-amount').textContent = (parseFloat(data.diapago)||0).toFixed(2) + '€';
+      const bn = parseFloat(data.beneficio)||0;
+      const liq = parseFloat(data.liquidacion)||0;
+      const dp = parseFloat(data.diapago)||0;
+
+      document.getElementById('beneficio-amount').textContent = bn.toFixed(2) + '€';
+
+      const liqEl = document.getElementById('liquidacion-amount');
+      liqEl.textContent = liq.toFixed(2) + '€';
+      liqEl.style.color = liq >= 0 ? '#c0392b' : '#1a7a4a';
+
+      const dpEl = document.getElementById('diapago-amount');
+      dpEl.textContent = dp.toFixed(2) + '€';
+      dpEl.style.color = dp >= 0 ? '#c0392b' : '#1a7a4a';
+
+      // También actualizar color de las tarjetas
+      const liqCard = liqEl.closest('div[onclick]') || liqEl.parentElement.parentElement;
+      const dpCard = dpEl.closest('div[onclick]') || dpEl.parentElement.parentElement;
+      liqCard.style.background = liq >= 0 ? '#fff0f0' : '#f0faf4';
+      liqCard.style.borderColor = liq >= 0 ? '#f5c6cb' : '#c3e6cb';
+      dpCard.style.background = dp >= 0 ? '#fff0f0' : '#f0faf4';
+      dpCard.style.borderColor = dp >= 0 ? '#f5c6cb' : '#c3e6cb';
     } else {
       document.getElementById('beneficio-amount').textContent = '—';
       document.getElementById('liquidacion-amount').textContent = '—';
