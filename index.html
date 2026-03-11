@@ -471,7 +471,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx4YxQTWmUuB3f_JQ4ScDfuubrgpoxfOFtW3d465lv0mWozV8MSH_EzPodfGZPvc57/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9K0yhzPh5FENLDOwMNMR6uV29U2joED0BdvM1o-vkTth13iW-lDm78HGaZV3f-jR6/exec';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
@@ -1004,19 +1004,32 @@ async function sendBnSp() {
 let editingRow = null;
 let editingTab = null;
 
+function parseFechaToInput(f) {
+  // Soporta: "11/3/2026", "2026-03-11T23:00:00.000Z", "2026-03-11"
+  if (!f) return '';
+  if (typeof f === 'string' && f.includes('T')) {
+    const d = new Date(f);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  if (typeof f === 'string' && f.includes('/')) {
+    const parts = f.split('/');
+    const y = parts[2].length === 4 ? parts[2] : '20'+parts[2];
+    const m = parts[1].padStart(2,'0');
+    const d = parts[0].padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  return f;
+}
+
 function editEntry(tab, row, btn) {
   const item = JSON.parse(btn.getAttribute('data-item').replace(/&#39;/g, "'"));
   editingRow = row;
   editingTab = tab;
   if (tab === 'vales') {
-    // Rellenar formulario de vales con datos existentes
-    const parts = item.fecha ? item.fecha.split('/') : ['','',''];
-    if (parts.length === 3) {
-      const y = parts[2].length === 4 ? parts[2] : '20'+parts[2];
-      const m = parts[1].padStart(2,'0');
-      const d = parts[0].padStart(2,'0');
-      document.getElementById('v-fecha').value = `${y}-${m}-${d}`;
-    }
+    document.getElementById('v-fecha').value = parseFechaToInput(item.fecha);
     document.getElementById('v-agencia').value = item.agencia || '';
     document.getElementById('v-origen').value = item.origen || '';
     document.getElementById('v-destino').value = item.destino || '';
@@ -1025,18 +1038,11 @@ function editEntry(tab, row, btn) {
     cobradoState = item.cobrado === 'SI';
     document.getElementById('toggle-cobrado').style.background = cobradoState ? '#27ae60' : '#ccc';
     document.getElementById('toggle-dot').style.left = cobradoState ? '25px' : '3px';
-    // Cambiar botón enviar a "Actualizar"
     document.getElementById('send-vale-btn').innerHTML = '<span>✏️</span><span>ACTUALIZAR</span>';
     document.getElementById('send-vale-btn').onclick = updateEntry;
     showScreen('vales');
   } else {
-    const parts = item.fecha ? item.fecha.split('/') : ['','',''];
-    if (parts.length === 3) {
-      const y = parts[2].length === 4 ? parts[2] : '20'+parts[2];
-      const m = parts[1].padStart(2,'0');
-      const d = parts[0].padStart(2,'0');
-      document.getElementById('a-fecha').value = `${y}-${m}-${d}`;
-    }
+    document.getElementById('a-fecha').value = parseFechaToInput(item.fecha);
     document.getElementById('a-agencia').value = item.agencia || '';
     document.getElementById('a-origen').value = item.origen || '';
     document.getElementById('a-destino').value = item.destino || '';
