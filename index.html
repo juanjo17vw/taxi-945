@@ -1192,10 +1192,47 @@ async function loadHistorial(tab) {
     });
     if (allItems.length === 0) {
       content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:15px">No hay registros</div>';
+      document.getElementById('historial-count').textContent = '';
       return;
     }
-    const items = allItems;
-    if (true) {
+    // Store for filtering
+    window._historialItems = allItems;
+    window._historialTab = tab;
+    document.getElementById('historial-search').value = '';
+    renderHistorialItems(allItems, tab);
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Error de conexión</div>';
+  }
+}
+
+function filterHistorial() {
+  const q = document.getElementById('historial-search').value.toLowerCase().trim();
+  const items = window._historialItems || [];
+  const tab = window._historialTab || currentHTab;
+  if (!q) {
+    renderHistorialItems(items, tab);
+    return;
+  }
+  const filtered = items.filter(item => {
+    const searchFields = [
+      item.fecha, item.agencia, item.cliente, item.origen, item.destino,
+      item.serie, item.vuelo, item._mes
+    ].map(f => (f || '').toLowerCase());
+    return searchFields.some(f => f.includes(q));
+  });
+  renderHistorialItems(filtered, tab);
+}
+
+function renderHistorialItems(items, tab) {
+  const content = document.getElementById('historial-content');
+  const count = document.getElementById('historial-count');
+  count.textContent = items.length + ' registro' + (items.length !== 1 ? 's' : '');
+  if (items.length === 0) {
+    content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:15px">Sin resultados</div>';
+    return;
+  }
+  const allItems = items;
+  if (true) {
       let html = '';
       items.forEach((item, idx) => {
         const rowNum = item.row || (tab === 'vales' ? 17 + idx : 33 + idx);
@@ -1244,9 +1281,6 @@ async function loadHistorial(tab) {
       });
       content.innerHTML = html;
     }
-  } catch(e) {
-    content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Error de conexión</div>';
-  }
 }
 
 // LOAD SAVED DATA when opening a day
@@ -1545,6 +1579,18 @@ async function loadDayData(date) {
   <div class="tabs" style="margin-bottom:0">
     <button class="tab active" id="htab-vales" onclick="switchHTab('vales')">Vales</button>
     <button class="tab" id="htab-agencias" onclick="switchHTab('agencias')">Agencias</button>
+  </div>
+
+  <div style="padding:10px 16px 0">
+    <div style="display:flex;align-items:center;background:#f5f7fa;border-radius:12px;padding:10px 14px;gap:8px;border:1px solid #eee">
+      <span style="font-size:16px">🔍</span>
+      <input id="historial-search" type="text" placeholder="Buscar por agencia, cliente o fecha..."
+        style="border:none;background:transparent;flex:1;font-size:14px;outline:none;color:#333"
+        oninput="filterHistorial()">
+      <button onclick="document.getElementById('historial-search').value='';filterHistorial()"
+        style="border:none;background:none;font-size:16px;cursor:pointer;color:#aaa;padding:0">✕</button>
+    </div>
+    <div id="historial-count" style="font-size:12px;color:#aaa;margin-top:6px;text-align:right"></div>
   </div>
 
   <div id="historial-content" style="padding:16px">
