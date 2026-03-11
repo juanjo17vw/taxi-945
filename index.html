@@ -480,7 +480,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfCNERk72SoDI6zlMrUKmzgDs-vO1G-8JDZoj-1Xk6Sv0_dDyxHmw1X77j9D1RSI8/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGYYghv54SIc_O2YADnlKOYDSGNaUo31irGSXMUu64-hR5frVf_NB3dfL-3bLMumia/exec';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
@@ -595,8 +595,8 @@ async function loadBeneficio() {
 
       document.getElementById('beneficio-amount').textContent = bn.toFixed(2) + '€';
 
-      document.getElementById('porcentaje-amount').textContent = data.porcentaje !== undefined ? data.porcentaje : '—';
-      document.getElementById('objetivo-amount').textContent = data.objetivo !== undefined ? data.objetivo : '—';
+      document.getElementById('porcentaje-amount').textContent = data.porcentaje || '—';
+      document.getElementById('objetivo-amount').textContent = data.objetivo || '—';
 
       const liqEl = document.getElementById('liquidacion-amount');
       liqEl.textContent = liq.toFixed(2) + '€';
