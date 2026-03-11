@@ -1132,9 +1132,9 @@ async function updateEntry() {
   }
 }
 
-async function deleteEntry(tab, row) {
+async function deleteEntry(tab, row, mes) {
   if (!confirm('¿Eliminar esta entrada?')) return;
-  const mes = MONTHS[currentDate.getMonth()];
+  mes = mes || MONTHS[currentDate.getMonth()];
   const payload = { tipo: tab === 'vales' ? 'delete_vale' : 'delete_agencia', mes, row };
   try {
     const form = new URLSearchParams();
@@ -1162,18 +1162,40 @@ async function loadHistorial(tab) {
   document.getElementById('htab-vales').className = 'tab' + (tab === 'vales' ? ' active' : '');
   document.getElementById('htab-agencias').className = 'tab' + (tab === 'agencias' ? ' active' : '');
   const content = document.getElementById('historial-content');
-  content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Cargando...</div>';
+  content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Cargando todos los meses...</div>';
   try {
-    const mes = MONTHS[currentDate.getMonth()];
-    const url = `${SCRIPT_URL}?mes=${encodeURIComponent(mes)}&historial=${tab}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status === 'OK') {
-      const items = tab === 'vales' ? (data.vales || []) : (data.agencias || []);
-      if (items.length === 0) {
-        content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:15px">No hay registros este mes</div>';
-        return;
+    // Fetch all 12 months in parallel
+    const promises = MONTHS.map(mes =>
+      fetch(`${SCRIPT_URL}?mes=${encodeURIComponent(mes)}&historial=${tab}`)
+        .then(r => r.json())
+        .catch(() => ({status:'ERROR'}))
+    );
+    const results = await Promise.all(promises);
+    let allItems = [];
+    results.forEach((data, i) => {
+      if (data.status === 'OK') {
+        const items = tab === 'vales' ? (data.vales || []) : (data.agencias || []);
+        items.forEach(item => { item._mes = MONTHS[i]; allItems.push(item); });
       }
+    });
+    // Sort by date descending
+    allItems.sort((a, b) => {
+      const parseD = (f) => {
+        if (!f) return 0;
+        if (typeof f === 'string' && f.includes('/')) {
+          const p = f.split('/');
+          return new Date(p[2], p[1]-1, p[0]).getTime();
+        }
+        return new Date(f).getTime();
+      };
+      return parseD(b.fecha) - parseD(a.fecha);
+    });
+    if (allItems.length === 0) {
+      content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:15px">No hay registros</div>';
+      return;
+    }
+    const items = allItems;
+    if (true) {
       let html = '';
       items.forEach((item, idx) => {
         const rowNum = item.row || (tab === 'vales' ? 17 + idx : 33 + idx);
@@ -1197,9 +1219,10 @@ async function loadHistorial(tab) {
               <span style="font-size:12px;color:#999">Serie: ${item.serie || '—'}</span>
               <span style="font-weight:700;color:#1a6ef5">${item.valor || '0'}€</span>
             </div>
+            <div style="font-size:11px;color:#888;margin-top:6px">📅 ${item._mes || ''}</div>
             <div style="display:flex;gap:8px;margin-top:10px">
               <button style="${btnStyle};background:#e8f0fe;color:#1a6ef5;flex:1" onclick="editEntry('vales',${rowNum},this)" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>✏️ Editar</button>
-              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('vales',${rowNum})">🗑️ Eliminar</button>
+              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('vales',${rowNum},'${item._mes}')">🗑️ Eliminar</button>
             </div>
           </div>`;
         } else {
@@ -1211,16 +1234,15 @@ async function loadHistorial(tab) {
             <div style="font-size:13px;color:#666">${item.agencia || ''}</div>
             <div style="font-size:13px;color:#888;margin-top:4px">${item.origen || ''} → ${item.destino || ''}</div>
             <div style="font-size:12px;color:#999;margin-top:6px">✈️ ${item.vuelo || '—'} · 👤 ${item.cliente || '—'}</div>
+            <div style="font-size:11px;color:#888;margin-top:6px">📅 ${item._mes || ''}</div>
             <div style="display:flex;gap:8px;margin-top:10px">
               <button style="${btnStyle};background:#fef3e8;color:#e67e22;flex:1" onclick="editEntry('agencias',${rowNum},this)" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>✏️ Editar</button>
-              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('agencias',${rowNum})">🗑️ Eliminar</button>
+              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('agencias',${rowNum},'${item._mes}')">🗑️ Eliminar</button>
             </div>
           </div>`;
         }
       });
       content.innerHTML = html;
-    } else {
-      content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Error al cargar</div>';
     }
   } catch(e) {
     content.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0">Error de conexión</div>';
