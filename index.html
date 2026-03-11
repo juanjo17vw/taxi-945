@@ -471,7 +471,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2w4IhyLhrKk8mk0XmFcXtKeFb654QHrZd7HFM0ghVu_pTQ7Nheo9GN2A33LaXVoY/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx4YxQTWmUuB3f_JQ4ScDfuubrgpoxfOFtW3d465lv0mWozV8MSH_EzPodfGZPvc57/exec';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
@@ -999,6 +999,130 @@ async function sendBnSp() {
 })();
 
 
+
+// EDITAR Y ELIMINAR HISTORIAL
+let editingRow = null;
+let editingTab = null;
+
+function editEntry(tab, row, btn) {
+  const item = JSON.parse(btn.getAttribute('data-item').replace(/&#39;/g, "'"));
+  editingRow = row;
+  editingTab = tab;
+  if (tab === 'vales') {
+    // Rellenar formulario de vales con datos existentes
+    const parts = item.fecha ? item.fecha.split('/') : ['','',''];
+    if (parts.length === 3) {
+      const y = parts[2].length === 4 ? parts[2] : '20'+parts[2];
+      const m = parts[1].padStart(2,'0');
+      const d = parts[0].padStart(2,'0');
+      document.getElementById('v-fecha').value = `${y}-${m}-${d}`;
+    }
+    document.getElementById('v-agencia').value = item.agencia || '';
+    document.getElementById('v-origen').value = item.origen || '';
+    document.getElementById('v-destino').value = item.destino || '';
+    document.getElementById('v-valor').value = item.valor || '';
+    document.getElementById('v-serie').value = item.serie || '';
+    cobradoState = item.cobrado === 'SI';
+    document.getElementById('toggle-cobrado').style.background = cobradoState ? '#27ae60' : '#ccc';
+    document.getElementById('toggle-dot').style.left = cobradoState ? '25px' : '3px';
+    // Cambiar botón enviar a "Actualizar"
+    document.getElementById('send-vale-btn').innerHTML = '<span>✏️</span><span>ACTUALIZAR</span>';
+    document.getElementById('send-vale-btn').onclick = updateEntry;
+    showScreen('vales');
+  } else {
+    const parts = item.fecha ? item.fecha.split('/') : ['','',''];
+    if (parts.length === 3) {
+      const y = parts[2].length === 4 ? parts[2] : '20'+parts[2];
+      const m = parts[1].padStart(2,'0');
+      const d = parts[0].padStart(2,'0');
+      document.getElementById('a-fecha').value = `${y}-${m}-${d}`;
+    }
+    document.getElementById('a-agencia').value = item.agencia || '';
+    document.getElementById('a-origen').value = item.origen || '';
+    document.getElementById('a-destino').value = item.destino || '';
+    document.getElementById('a-precio').value = item.precio || '';
+    document.getElementById('a-cliente').value = item.cliente || '';
+    document.getElementById('a-vuelo').value = item.vuelo || '';
+    document.getElementById('send-agencia-btn').innerHTML = '<span>✏️</span><span>ACTUALIZAR</span>';
+    document.getElementById('send-agencia-btn').onclick = updateEntry;
+    showScreen('agencia');
+  }
+}
+
+async function updateEntry() {
+  const tab = editingTab;
+  const row = editingRow;
+  const btn = document.getElementById(tab === 'vales' ? 'send-vale-btn' : 'send-agencia-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  let payload;
+  if (tab === 'vales') {
+    const fecha = document.getElementById('v-fecha').value;
+    const d = new Date(fecha + 'T00:00:00');
+    const mes = MONTHS[d.getMonth()];
+    payload = {
+      tipo: 'update_vale', mes, row,
+      fecha: `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,
+      agencia: document.getElementById('v-agencia').value || '',
+      origen: document.getElementById('v-origen').value || '',
+      destino: document.getElementById('v-destino').value || '',
+      valor: parseFloat(document.getElementById('v-valor').value) || 0,
+      serie: document.getElementById('v-serie').value || '',
+      cobrado: cobradoState ? 'SI' : 'NO',
+    };
+  } else {
+    const fecha = document.getElementById('a-fecha').value;
+    const d = new Date(fecha + 'T00:00:00');
+    const mes = MONTHS[d.getMonth()];
+    payload = {
+      tipo: 'update_agencia', mes, row,
+      fecha: `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,
+      agencia: document.getElementById('a-agencia').value || '',
+      origen: document.getElementById('a-origen').value || '',
+      destino: document.getElementById('a-destino').value || '',
+      precio: parseFloat(document.getElementById('a-precio').value) || 0,
+      cliente: document.getElementById('a-cliente').value || '',
+      vuelo: document.getElementById('a-vuelo').value || '',
+      realizadoPor: 'Juanjo 945',
+    };
+  }
+
+  try {
+    const form = new URLSearchParams();
+    form.append('data', JSON.stringify(payload));
+    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form });
+    showToast('✅ Actualizado correctamente', 'success');
+    // Reset buttons
+    editingRow = null; editingTab = null;
+    document.getElementById('send-vale-btn').innerHTML = '<span>➤</span><span>ENVIAR</span>';
+    document.getElementById('send-vale-btn').onclick = sendVale;
+    document.getElementById('send-agencia-btn').innerHTML = '<span>➤</span><span>ENVIAR</span>';
+    document.getElementById('send-agencia-btn').onclick = sendAgencia;
+    setTimeout(() => { showScreen('historial'); loadHistorial(tab); }, 1500);
+  } catch(e) {
+    showToast('❌ Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = tab === 'vales' ? '<span>✏️</span><span>ACTUALIZAR</span>' : '<span>✏️</span><span>ACTUALIZAR</span>';
+  }
+}
+
+async function deleteEntry(tab, row) {
+  if (!confirm('¿Eliminar esta entrada?')) return;
+  const mes = MONTHS[currentDate.getMonth()];
+  const payload = { tipo: tab === 'vales' ? 'delete_vale' : 'delete_agencia', mes, row };
+  try {
+    const form = new URLSearchParams();
+    form.append('data', JSON.stringify(payload));
+    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form });
+    showToast('✅ Entrada eliminada', 'success');
+    setTimeout(() => loadHistorial(tab), 1500);
+  } catch(e) {
+    showToast('❌ Error de conexión', 'error');
+  }
+}
+
 // HISTORIAL
 let currentHTab = 'vales';
 
@@ -1027,28 +1151,46 @@ async function loadHistorial(tab) {
         return;
       }
       let html = '';
-      items.forEach(item => {
+      items.forEach((item, idx) => {
+        const rowNum = item.row || (tab === 'vales' ? 17 + idx : 33 + idx);
+        const btnStyle = 'border:none;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:700';
+        const formatFecha = (f) => {
+          if (!f) return '—';
+          if (typeof f === 'string' && f.includes('T')) {
+            const d = new Date(f);
+            return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+          }
+          return f;
+        };
         if (tab === 'vales') {
           html += `<div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:16px;margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-weight:700;font-size:15px">${item.fecha || '—'}</span>
+              <span style="font-weight:700;font-size:15px">${formatFecha(item.fecha)}</span>
               <span style="background:${item.cobrado==='SI'?'#e8f5e9':'#fff0f0'};color:${item.cobrado==='SI'?'#2e7d32':'#c0392b'};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">${item.cobrado==='SI'?'✓ Cobrado':'Pendiente'}</span>
             </div>
             <div style="font-size:13px;color:#666">${item.agencia || ''} · ${item.origen || ''} → ${item.destino || ''}</div>
-            <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
               <span style="font-size:12px;color:#999">Serie: ${item.serie || '—'}</span>
               <span style="font-weight:700;color:#1a6ef5">${item.valor || '0'}€</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button style="${btnStyle};background:#e8f0fe;color:#1a6ef5;flex:1" onclick="editEntry('vales',${rowNum},this)" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>✏️ Editar</button>
+              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('vales',${rowNum})">🗑️ Eliminar</button>
             </div>
           </div>`;
         } else {
           html += `<div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:16px;margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-weight:700;font-size:15px">${item.fecha || '—'}</span>
+              <span style="font-weight:700;font-size:15px">${formatFecha(item.fecha)}</span>
               <span style="font-weight:700;color:#e67e22">${item.precio || '0'}€</span>
             </div>
             <div style="font-size:13px;color:#666">${item.agencia || ''}</div>
             <div style="font-size:13px;color:#888;margin-top:4px">${item.origen || ''} → ${item.destino || ''}</div>
             <div style="font-size:12px;color:#999;margin-top:6px">✈️ ${item.vuelo || '—'} · 👤 ${item.cliente || '—'}</div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button style="${btnStyle};background:#fef3e8;color:#e67e22;flex:1" onclick="editEntry('agencias',${rowNum},this)" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>✏️ Editar</button>
+              <button style="${btnStyle};background:#fff0f0;color:#c0392b;flex:1" onclick="deleteEntry('agencias',${rowNum})">🗑️ Eliminar</button>
+            </div>
           </div>`;
         }
       });
