@@ -423,32 +423,32 @@
 
   <div class="field-group">
     <div class="field-label">🚗 CONTROL KM</div>
-    <input class="field-input" type="number" id="f-controlKm" placeholder="0" inputmode="numeric">
+    <input class="field-input" type="number" id="f-controlKm" placeholder="0" inputmode="numeric" oninput="saveFieldsLocally(selectedFullDate)">
   </div>
 
   <div class="field-group">
     <div class="field-label">⛽ REPOSTAJE</div>
-    <input class="field-input" type="number" id="f-repostaje" placeholder="0.00" inputmode="decimal" step="0.01">
+    <input class="field-input" type="number" id="f-repostaje" oninput="saveFieldsLocally(selectedFullDate)" placeholder="0.00" inputmode="decimal" step="0.01">
   </div>
 
   <div class="field-group">
     <div class="field-label">🚗 KM</div>
-    <input class="field-input" type="number" id="f-km" placeholder="0" inputmode="numeric">
+    <input class="field-input" type="number" id="f-km" oninput="saveFieldsLocally(selectedFullDate)" placeholder="0" inputmode="numeric">
   </div>
 
   <div class="field-group">
     <div class="field-label">↕ PARCIAL</div>
-    <input class="field-input" type="number" id="f-parcial" placeholder="0.00" inputmode="decimal" step="0.01">
+    <input class="field-input" type="number" id="f-parcial" oninput="saveFieldsLocally(selectedFullDate)" placeholder="0.00" inputmode="decimal" step="0.01">
   </div>
 
   <div class="row-fields">
     <div>
       <div class="field-label">💳 TPV</div>
-      <input class="field-input" type="number" id="f-tpv" placeholder="0.00" inputmode="decimal" step="0.01">
+      <input class="field-input" type="number" id="f-tpv" oninput="saveFieldsLocally(selectedFullDate)" placeholder="0.00" inputmode="decimal" step="0.01">
     </div>
     <div>
       <div class="field-label">🤝 PROPINAS</div>
-      <input class="field-input" type="number" id="f-propinas" placeholder="0.00" inputmode="decimal" step="0.01">
+      <input class="field-input" type="number" id="f-propinas" oninput="saveFieldsLocally(selectedFullDate)" placeholder="0.00" inputmode="decimal" step="0.01">
     </div>
   </div>
   <div class="row-fields" style="margin-top:20px">
@@ -593,6 +593,33 @@ async function loadBeneficio() {
   }
 }
 
+function getDayKey(date) {
+  return `day_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}`;
+}
+
+function saveFieldsLocally(date) {
+  const key = getDayKey(date);
+  const data = {};
+  ['controlKm','repostaje','km','parcial','tpv','propinas'].forEach(k => {
+    const val = document.getElementById('f-' + k).value;
+    if (val !== '') data[k] = val;
+  });
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function loadFieldsFromLocal(date) {
+  const key = getDayKey(date);
+  const stored = localStorage.getItem(key);
+  if (stored) {
+    const data = JSON.parse(stored);
+    ['controlKm','repostaje','km','parcial','tpv','propinas'].forEach(k => {
+      if (data[k] !== undefined) document.getElementById('f-' + k).value = data[k];
+    });
+    return true;
+  }
+  return false;
+}
+
 function showFormForDay(date) {
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   document.getElementById('form-date-display').textContent =
@@ -601,6 +628,8 @@ function showFormForDay(date) {
     document.getElementById('f-' + k).value = '';
   });
   showScreen('form');
+  // Cargar local primero, luego Sheet por encima
+  loadFieldsFromLocal(date);
   loadDayData(date);
 }
 
@@ -639,6 +668,7 @@ async function sendData() {
     });
     // no-cors no devuelve respuesta, asumimos OK
     showToast('✅ Datos guardados correctamente', 'success');
+    localStorage.removeItem(getDayKey(selectedFullDate));
     setTimeout(() => { showScreen('calendar'); loadBeneficio(); }, 1500);
   } catch (e) {
     showToast('❌ Error de conexión', 'error');
