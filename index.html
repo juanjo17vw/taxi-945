@@ -703,6 +703,60 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+
+// AUTOCOMPLETADO DE AGENCIAS
+function getAgenciasGuardadas() {
+  const stored = localStorage.getItem('agencias_conocidas');
+  return stored ? JSON.parse(stored) : [];
+}
+
+function saveAgencia(nombre) {
+  if (!nombre || nombre.trim() === '') return;
+  const nombre_clean = nombre.trim();
+  let agencias = getAgenciasGuardadas();
+  // Mover al principio si ya existe (más usada reciente)
+  agencias = agencias.filter(a => a.toLowerCase() !== nombre_clean.toLowerCase());
+  agencias.unshift(nombre_clean);
+  // Guardar máximo 20
+  agencias = agencias.slice(0, 20);
+  localStorage.setItem('agencias_conocidas', JSON.stringify(agencias));
+}
+
+function showSuggestions(inputId, listId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  const q = input.value.toLowerCase().trim();
+  const agencias = getAgenciasGuardadas();
+
+  const matches = q === ''
+    ? agencias.slice(0, 6)
+    : agencias.filter(a => a.toLowerCase().includes(q)).slice(0, 6);
+
+  if (matches.length === 0) {
+    list.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = matches.map(a =>
+    `<div onclick="selectAgencia('${inputId}','${listId}','${a.replace(/'/g,"\'")}')"
+      style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid #f5f5f5;active:background:#f0f0f0"
+      onmousedown="event.preventDefault()">${a}</div>`
+  ).join('');
+  list.style.display = 'block';
+}
+
+function selectAgencia(inputId, listId, value) {
+  document.getElementById(inputId).value = value;
+  document.getElementById(listId).style.display = 'none';
+}
+
+function hideSuggestions(listId) {
+  setTimeout(() => {
+    const el = document.getElementById(listId);
+    if (el) el.style.display = 'none';
+  }, 150);
+}
+
 // VALES
 let cobradoState = false;
 
@@ -742,6 +796,7 @@ async function sendVale() {
   };
 
   try {
+    saveAgencia(document.getElementById('v-agencia').value);
     const form = new URLSearchParams();
     form.append('data', JSON.stringify(payload));
     await fetch(SCRIPT_URL, {
@@ -803,6 +858,7 @@ async function sendAgencia() {
   };
 
   try {
+    saveAgencia(document.getElementById('a-agencia').value);
     const form = new URLSearchParams();
     form.append('data', JSON.stringify(payload));
     await fetch(SCRIPT_URL, {
@@ -884,6 +940,7 @@ async function sendDpVale() {
   };
 
   try {
+    saveAgencia(document.getElementById('v-agencia').value);
     const form = new URLSearchParams();
     form.append('data', JSON.stringify(payload));
     await fetch(SCRIPT_URL, {
@@ -1321,7 +1378,9 @@ async function loadDayData(date) {
 
   <div class="field-group">
     <div class="field-label">🏢 AGENCIA</div>
-    <input class="field-input" type="text" id="v-agencia" placeholder="Nombre agencia">
+    <input class="field-input" type="text" id="v-agencia" placeholder="Nombre agencia"
+      oninput="showSuggestions('v-agencia','v-suggestions')" onblur="hideSuggestions('v-suggestions')" onfocus="showSuggestions('v-agencia','v-suggestions')" autocomplete="off">
+    <div id="v-suggestions" style="display:none;position:relative;z-index:100;background:#fff;border:1px solid #eee;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1);margin-top:4px;overflow:hidden"></div>
   </div>
 
   <div class="row-fields">
@@ -1387,7 +1446,9 @@ async function loadDayData(date) {
 
   <div class="field-group">
     <div class="field-label">🏢 AGENCIA</div>
-    <input class="field-input" type="text" id="a-agencia" placeholder="Nombre agencia">
+    <input class="field-input" type="text" id="a-agencia" placeholder="Nombre agencia"
+      oninput="showSuggestions('a-agencia','a-suggestions')" onblur="hideSuggestions('a-suggestions')" onfocus="showSuggestions('a-agencia','a-suggestions')" autocomplete="off">
+    <div id="a-suggestions" style="display:none;position:relative;z-index:100;background:#fff;border:1px solid #eee;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1);margin-top:4px;overflow:hidden"></div>
   </div>
 
   <div class="row-fields">
