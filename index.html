@@ -358,13 +358,13 @@
   </div>
 
   <div class="week-row">
-    <div class="week-day">DOM</div>
     <div class="week-day">LUN</div>
     <div class="week-day">MAR</div>
     <div class="week-day">MIÉ</div>
     <div class="week-day">JUE</div>
     <div class="week-day">VIE</div>
     <div class="week-day">SÁB</div>
+    <div class="week-day">DOM</div>
   </div>
 
   <div class="calendar-grid" id="calendar-grid"></div>
@@ -474,7 +474,7 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwL48vrWhJUpYHW10ZK1hywvwi6OBStPPMIip0OT9XZRN50DOkUiWNrEzI4ij1KW-a5/exec';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DAYS = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+const DAYS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
 
 let currentDate = new Date();
 currentDate.setDate(1);
@@ -524,7 +524,7 @@ function renderCalendar() {
 
   document.getElementById('month-title-header').textContent = `${MONTHS[month]} ${year}`;
 
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0, Sun=6
   const totalDays = new Date(year, month + 1, 0).getDate();
 
   let html = '';
