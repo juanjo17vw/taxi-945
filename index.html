@@ -522,9 +522,10 @@ function saveDiasLibres() {
 function changeMonth(dir) {
   currentDate.setMonth(currentDate.getMonth() + dir);
   selectedDay = null;
-  loadDiasLibres();
+  diasLibres = {};        // reset antes de cargar el nuevo mes
+  loadDiasLibres();       // carga del localStorage del nuevo mes
   renderCalendar();
-  loadBeneficio();
+  loadBeneficio();        // cargará los del Sheet y actualizará
 }
 
 function renderCalendar() {
