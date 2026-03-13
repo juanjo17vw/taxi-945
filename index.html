@@ -599,8 +599,13 @@ async function loadBeneficio() {
       document.getElementById('porcentaje-amount').textContent = data.porcentaje || '—';
       document.getElementById('objetivo-amount').textContent = data.objetivo || '—';
 
-      // Sync diasLibres from Sheet (yellow cells)
-      if (data.diasLibres && Array.isArray(data.diasLibres)) {
+      // Sync diasLibres from Sheet (yellow cells) — solo mes actual en adelante
+      const today = new Date();
+      const isCurrentOrFuture = currentDate.getFullYear() > today.getFullYear() ||
+        (currentDate.getFullYear() === today.getFullYear() &&
+         currentDate.getMonth() >= today.getMonth());
+
+      if (isCurrentOrFuture && data.diasLibres && Array.isArray(data.diasLibres)) {
         data.diasLibres.forEach(d => { diasLibres[d] = true; });
         saveDiasLibres();
         renderCalendar();
