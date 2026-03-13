@@ -481,7 +481,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-ZD-WdCu5H84UHKkQ-pa0tVyZ82BEook4rppJF4MIC6dquLr10fg0QAIkNrt73VT0/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt6txUiqaImjTvYNUvnrT_h54MvK-rvIWSKlduNcqODXeZ8gIUueANVOCPWWKJkgko/exec';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
@@ -598,6 +598,13 @@ async function loadBeneficio() {
 
       document.getElementById('porcentaje-amount').textContent = data.porcentaje || '—';
       document.getElementById('objetivo-amount').textContent = data.objetivo || '—';
+
+      // Sync diasLibres from Sheet (yellow cells)
+      if (data.diasLibres && Array.isArray(data.diasLibres)) {
+        data.diasLibres.forEach(d => { diasLibres[d] = true; });
+        saveDiasLibres();
+        renderCalendar();
+      }
 
       const liqEl = document.getElementById('liquidacion-amount');
       liqEl.textContent = liq.toFixed(2) + '€';
